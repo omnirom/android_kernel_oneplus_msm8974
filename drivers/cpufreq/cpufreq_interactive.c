@@ -69,7 +69,8 @@ static spinlock_t speedchange_cpumask_lock;
 static struct mutex gov_lock;
 
 /* Hi speed to bump to from lo speed when load burst (default max) */
-static unsigned int hispeed_freq;
+#define DEFAULT_HISPEED_FREQ 1497600
+static unsigned int hispeed_freq = DEFAULT_HISPEED_FREQ;
 
 /* Go to hi speed when CPU load at or above this value. */
 #define DEFAULT_GO_HISPEED_LOAD 99
@@ -385,7 +386,6 @@ static void cpufreq_interactive_timer(unsigned long data)
 	if (!pcpu->governor_enabled)
 		goto exit;
 
-	pcpu->nr_timer_resched = 0;
 	spin_lock_irqsave(&pcpu->load_lock, flags);
 	now = update_load(data);
 	delta_time = (unsigned int)(now - pcpu->cputime_speedadj_timestamp);
