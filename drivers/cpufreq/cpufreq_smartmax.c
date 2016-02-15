@@ -39,12 +39,6 @@
 #include <linux/slab.h>
 #include <linux/kernel_stat.h>
 
-#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_TEGRA
-extern int tegra_input_boost (struct cpufreq_policy *policy,
-		       unsigned int target_freq,
-		       unsigned int relation);
-#endif
-
 /******************** Tunable parameters: ********************/
 
 /*
@@ -53,86 +47,6 @@ extern int tegra_input_boost (struct cpufreq_policy *policy,
  * lowering the frequency towards the ideal frequency is faster than below it.
  */
 
-
-#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_ENRC2B
-#define DEFAULT_SUSPEND_IDEAL_FREQ 475000
-#define DEFAULT_AWAKE_IDEAL_FREQ 475000
-#define DEFAULT_RAMP_UP_STEP 300000
-#define DEFAULT_RAMP_DOWN_STEP 150000
-#define DEFAULT_MAX_CPU_LOAD 80
-#define DEFAULT_MIN_CPU_LOAD 50
-#define DEFAULT_UP_RATE 30000
-#define DEFAULT_DOWN_RATE 60000
-#define DEFAULT_SAMPLING_RATE 30000
-// default to 3 * sampling_rate
-#define DEFAULT_INPUT_BOOST_DURATION 90000
-#define DEFAULT_TOUCH_POKE_FREQ 910000
-#define DEFAULT_BOOST_FREQ 910000
-/*
- * from cpufreq_wheatley.c
- * Not all CPUs want IO time to be accounted as busy; this dependson how
- * efficient idling at a higher frequency/voltage is.
- * Pavel Machek says this is not so for various generations of AMD and old
- * Intel systems.
- * Mike Chan (androidlcom) calis this is also not true for ARM.
- */
-#define DEFAULT_IO_IS_BUSY 0
-#define DEFAULT_IGNORE_NICE 1
-#endif
-
-#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_PRIMOU
-#define DEFAULT_SUSPEND_IDEAL_FREQ 368000
-#define DEFAULT_AWAKE_IDEAL_FREQ 806000
-#define DEFAULT_RAMP_UP_STEP 200000
-#define DEFAULT_RAMP_DOWN_STEP 200000
-#define DEFAULT_MAX_CPU_LOAD 60
-#define DEFAULT_MIN_CPU_LOAD 30
-#define DEFAULT_UP_RATE 30000
-#define DEFAULT_DOWN_RATE 60000
-#define DEFAULT_SAMPLING_RATE 30000
-#define DEFAULT_INPUT_BOOST_DURATION 90000
-#define DEFAULT_TOUCH_POKE_FREQ 1200000
-#define DEFAULT_BOOST_FREQ 1200000
-#define DEFAULT_IO_IS_BUSY 0
-#define DEFAULT_IGNORE_NICE 1
-#endif
-
-#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_M7
-#define DEFAULT_SUSPEND_IDEAL_FREQ 594000
-#define DEFAULT_AWAKE_IDEAL_FREQ 1026000
-#define DEFAULT_RAMP_UP_STEP 200000
-#define DEFAULT_RAMP_DOWN_STEP 200000
-#define DEFAULT_MAX_CPU_LOAD 55
-#define DEFAULT_MIN_CPU_LOAD 5
-#define DEFAULT_UP_RATE 30000
-#define DEFAULT_DOWN_RATE 60000
-#define DEFAULT_SAMPLING_RATE 30000
-#define DEFAULT_INPUT_BOOST_DURATION 150000
-#define DEFAULT_TOUCH_POKE_FREQ 1512000
-#define DEFAULT_BOOST_FREQ 1512000
-#define DEFAULT_IO_IS_BUSY 0
-#define DEFAULT_IGNORE_NICE 1
-#endif
-
-#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_FIND5
-#define DEFAULT_SUSPEND_IDEAL_FREQ 384000
-#define DEFAULT_AWAKE_IDEAL_FREQ 702000
-#define DEFAULT_RAMP_UP_STEP 300000
-#define DEFAULT_RAMP_DOWN_STEP 200000
-#define DEFAULT_MAX_CPU_LOAD 70
-#define DEFAULT_MIN_CPU_LOAD 40
-#define DEFAULT_UP_RATE 30000
-#define DEFAULT_DOWN_RATE 60000
-#define DEFAULT_SAMPLING_RATE 30000
-#define DEFAULT_INPUT_BOOST_DURATION 1200000
-#define DEFAULT_TOUCH_POKE_FREQ 1350000
-#define DEFAULT_BOOST_FREQ 1350000
-#define DEFAULT_IO_IS_BUSY 0
-#define DEFAULT_IGNORE_NICE 1
-#endif
-
-#define CONFIG_CPU_FREQ_GOV_SMARTMAX_BACON
-#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_BACON
 #define DEFAULT_SUSPEND_IDEAL_FREQ 652800
 #define DEFAULT_AWAKE_IDEAL_FREQ 1036800
 #define DEFAULT_RAMP_UP_STEP 200000
@@ -147,7 +61,6 @@ extern int tegra_input_boost (struct cpufreq_policy *policy,
 #define DEFAULT_BOOST_FREQ 1497600
 #define DEFAULT_IO_IS_BUSY 0
 #define DEFAULT_IGNORE_NICE 1
-#endif
 
 static unsigned int suspend_ideal_freq;
 static unsigned int awake_ideal_freq;
@@ -309,51 +222,6 @@ struct cpufreq_governor cpufreq_gov_smartmax = {
     .max_transition_latency = TRANSITION_LATENCY_LIMIT, 
     .owner = THIS_MODULE,
     };
-
-static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall) {
-
-	u64 idle_time;
-	u64 cur_wall_time;
-	u64 busy_time;
-
-	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
-
-#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_30
-	busy_time  = kstat_cpu(cpu).cpustat.user;
-	busy_time += kstat_cpu(cpu).cpustat.system;
-	busy_time += kstat_cpu(cpu).cpustat.irq;
-	busy_time += kstat_cpu(cpu).cpustat.softirq;
-	busy_time += kstat_cpu(cpu).cpustat.steal;
-	busy_time += kstat_cpu(cpu).cpustat.nice;
-#else
-	busy_time  = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_NICE];
-#endif
-
-	idle_time = cur_wall_time - busy_time;
-	if (wall)
-		*wall = jiffies_to_usecs(cur_wall_time);
-
-	return jiffies_to_usecs(idle_time);
-}
-
-/* function has been moved to cpufreq.c
-static inline u64 get_cpu_idle_time(unsigned int cpu, u64 *wall)
-{
-	u64 idle_time = get_cpu_idle_time_us(cpu, NULL);
-
-	if (idle_time == -1ULL)
-		return get_cpu_idle_time_jiffy(cpu, wall);
-	else
-		idle_time += get_cpu_iowait_time_us(cpu, wall);
-
-	return idle_time;
-}
-*/
 
 static inline u64 get_cpu_iowait_time(unsigned int cpu, u64 *wall) {
 	u64 iowait_time = get_cpu_iowait_time_us(cpu, wall);
@@ -1051,7 +919,7 @@ static ssize_t store_min_sampling_rate(struct kobject *a, struct attribute *b,
 
 #define define_global_rw_attr(_name)		\
 static struct global_attr _name##_attr =	\
-	__ATTR(_name, 0644, show_##_name, store_##_name)
+	__ATTR(_name, 0666, show_##_name, store_##_name)
 
 #define define_global_ro_attr(_name)		\
 static struct global_attr _name##_attr =	\
@@ -1074,7 +942,7 @@ define_global_rw_attr(ignore_nice);
 define_global_rw_attr(ramp_up_during_boost);
 define_global_rw_attr(awake_ideal_freq);
 define_global_rw_attr(suspend_ideal_freq);
-define_global_ro_attr(min_sampling_rate);
+define_global_rw_attr(min_sampling_rate);
 
 static struct attribute * smartmax_attributes[] = { 
 	&debug_mask_attr.attr,
@@ -1372,6 +1240,9 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 
 		break;
 	case CPUFREQ_GOV_LIMITS:
+		if (this_smartmax->cur_policy == NULL)
+			break;
+
 		mutex_lock(&this_smartmax->timer_mutex);
 		smartmax_update_min_max(this_smartmax,new_policy);
 
