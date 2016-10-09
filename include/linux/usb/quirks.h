@@ -31,12 +31,8 @@
 #define USB_QUIRK_DELAY_INIT		0x00000040
 
 #define USB_QUIRK_OTG_PET		0x00000080
-
 /* device can't handle device_qualifier descriptor requests */
 #define USB_QUIRK_DEVICE_QUALIFIER	0x00000100
-
-/* device generates spurious wakeup, ignore remote wakeup capability */
-#define USB_QUIRK_IGNORE_REMOTE_WAKEUP	0x00000200
 
 /*
  * For high speed and super speed interupt endpoints, the USB 2.0 and
