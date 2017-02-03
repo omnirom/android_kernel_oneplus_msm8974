@@ -244,11 +244,12 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
+GRAPHITE = -fgraphite -fgraphite-identity -floop-interchange -ftree-loop-linear -floop-strip-mine -floop-block -floop-parallelize-all -floop-nest-optimize
+
 HOSTCC       = $(CCACHE) gcc
 HOSTCXX      = $(CCACHE) g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -fomit-frame-pointer -fgcse-las -std=gnu89
-HOSTCXXFLAGS = -O3 -fgcse-las
-
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -fomit-frame-pointer -fgcse-las -std=gnu89 -pipe -g0 -DNDEBUG -fno-toplevel-reorder -fuse-linker-plugin -flto=4 -fopenmp $(GRAPHITE)
+HOSTCXXFLAGS = -fgcse-las -pipe -g0 -DNDEBUG -O3 -fno-toplevel-reorder -fuse-linker-plugin -flto=4 $(GRAPHITE) -std=gnu++14
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
 
@@ -329,9 +330,41 @@ include $(srctree)/scripts/Kbuild.include
 
 # Make variables (CC, etc...)
 
+GCC_OPT		:=	-marm \
+			-mcpu=cortex-a15 \
+			-mtune=cortex-a15 \
+			-mvectorize-with-neon-quad \
+			-mfpu=neon-vfpv4 \
+			-mfloat-abi=softfp \
+			-munaligned-access \
+			--param l1-cache-size=16 \
+			--param l1-cache-line-size=16 \
+			--param l2-cache-size=2048 \
+			-ffast-math \
+			-O3 \
+			-pipe \
+			-g0 \
+			-DNDEBUG \
+			-fomit-frame-pointer \
+			-fmodulo-sched \
+			-fmodulo-sched-allow-regmoves \
+			-fivopts \
+			-ftree-loop-vectorize \
+			-ftree-slp-vectorize \
+			-fvect-cost-model \
+			-fsingle-precision-constant \
+			-fpredictive-commoning \
+			-fopenmp \
+			-fsanitize=leak \
+			-Wno-maybe-uninitialized \
+			-Wno-misleading-indentation \
+			-Wno-array-bounds \
+			-Wno-shift-overflow \
+			$(GRAPHITE)
+
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld
-CC		= $(CCACHE) $(CROSS_COMPILE)gcc
+LD		= $(CROSS_COMPILE)ld.gold -O3 --strip-debug
+CC		= $(CCACHE) $(CROSS_COMPILE)gcc $(GCC_OPT)
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -380,6 +413,7 @@ KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_CFLAGS   := -Wall -DNDEBUG -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
+		   -mcpu=cortex-a15 -mtune=cortex-a15 \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
 		   -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 -marm \
@@ -391,7 +425,7 @@ KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_AFLAGS_MODULE  := -DMODULE
-KBUILD_CFLAGS_MODULE  := -DMODULE -fno-pic
+KBUILD_CFLAGS_MODULE  := -DMODULE
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
