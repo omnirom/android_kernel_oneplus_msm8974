@@ -23,6 +23,8 @@
 #include <asm/cputime.h>
 
 #define CPUFREQ_NAME_LEN 16
+/* Print length for names. Extra 1 space for accomodating '\n' in prints */
+#define CPUFREQ_NAME_PLEN (CPUFREQ_NAME_LEN + 1)
 
 
 /*********************************************************************
@@ -121,6 +123,9 @@ struct cpufreq_policy {
 #define CPUFREQ_START		(3)
 #define CPUFREQ_CREATE_POLICY (5)
 #define CPUFREQ_REMOVE_POLICY (6)
+
+#define CPUFREQ_CREATE_POLICY	(5)
+#define CPUFREQ_REMOVE_POLICY	(6)
 
 #define CPUFREQ_SHARED_TYPE_NONE (0) /* None */
 #define CPUFREQ_SHARED_TYPE_HW	 (1) /* HW does needed coordination */
