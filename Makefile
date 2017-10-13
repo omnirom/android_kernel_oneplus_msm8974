@@ -357,9 +357,7 @@ GCC_OPT		:=	-marm \
 			-fopenmp \
 			-fsanitize=leak \
 			-Wno-maybe-uninitialized \
-			-Wno-misleading-indentation \
 			-Wno-array-bounds \
-			-Wno-shift-overflow \
 			$(GRAPHITE)
 
 AS		= $(CROSS_COMPILE)as
