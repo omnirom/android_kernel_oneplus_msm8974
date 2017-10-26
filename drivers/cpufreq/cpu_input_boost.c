@@ -239,16 +239,27 @@ static void cpu_ib_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
 	struct boost_policy *b = handle->handler->private;
-	enum boost_status ib_status;
-	bool do_boost;
+	bool do_boost, boost_running;
 
 	spin_lock(&b->lock);
-	ib_status = b->ib.running;
-	do_boost = b->enabled && !b->fb.state && (ib_status != REBOOST);
+	do_boost = b->enabled && !b->fb.state;
+	boost_running = b->ib.running;
 	spin_unlock(&b->lock);
 
 	if (!do_boost)
 		return;
+
+	/* Continuous boosting (from constant user input) */
+	if (boost_running) {
+		/* Only keep CPU0 boosted (more efficient) */
+		struct ib_pcpu *pcpu = per_cpu_ptr(b->ib.boost_info, 0);
+
+		if (cancel_delayed_work_sync(&pcpu->unboost_work)) {
+			queue_delayed_work(b->wq, &pcpu->unboost_work,
+				msecs_to_jiffies(b->ib.adj_duration_ms));
+			return;
+		}
+	}
 
 	/* Continuous boosting (from constant user input) */
 	if (ib_status == BOOST) {
