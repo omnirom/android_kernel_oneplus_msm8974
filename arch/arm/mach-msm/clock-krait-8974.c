@@ -46,10 +46,6 @@ module_param(speed_level, int, S_IRUGO);
 int speed_level = -1;
 module_param(speed_level, int, S_IRUGO);
 #endif
-#ifdef CONFIG_PVS_LEVEL_INTERFACE
-int pvs_level = -1;
-module_param(pvs_level, int, S_IRUGO); 
-#endif
 
 /* Clock inputs coming into Krait subsystem */
 DEFINE_FIXED_DIV_CLK(hfpll_src_clk, 1, NULL);
